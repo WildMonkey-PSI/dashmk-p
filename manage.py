@@ -193,7 +193,7 @@ def update_output(value):
     case_perDay = countAllCasesPerDayForOneCountry(country)
     figure={
             'data': [
-                {'x': plot_x, 'y': plot_y, 'type': 'bar', 'name': 'SF'},
+                {'x': plot_x, 'y': plot_y, 'type': 'line', 'name': 'SF'},
             ],
             'layout': {
                 'title': 'Total ' + country
