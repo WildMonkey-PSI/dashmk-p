@@ -4,7 +4,12 @@ import dash_html_components as html
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import plotly.graph_objects as go
 from datetime import datetime
+import time
+
+start = time.time()
+
 
 data_csv = pd.read_csv('https://data.humdata.org/hxlproxy/api/data-preview.csv?url=https%3A%2F%2Fraw.githubusercontent.com%2FCSSEGISandData%2FCOVID-19%2Fmaster%2Fcsse_covid_19_data%2Fcsse_covid_19_time_series%2Ftime_series_covid19_confirmed_global.csv&filename=time_series_covid19_confirmed_global.csv')
     
@@ -142,9 +147,25 @@ app = dash.Dash(__name__)
 server = app.server
 app.layout = html.Div(children=[
     html.H1("COVID-19 DASHBOARD", style={'textAlign': 'center'}),
-    html.Div("W dniu dzisiejszym odnotowano najwięcej przypadków zakażeń w kraju: {} z liczbą {} przypdaków".format(countedCasesAllCountries[0][0] ,countedCasesAllCountries[0][1]) , style={'textAlign':'center'}),
-    html.Div("W dniu dzisiejszym odnotowano najmniej przypadków zakażeń w kraju: {} z liczbą {} przypdaków".format(list(leastCasesPerDay.items())[0][0], list(leastCasesPerDay.items())[0][1]) ,  style={'textAlign':'center'}),
-    html.Div("W dniu dzisiejszym nie odnotowano nowych przypadków w {} krajach".format(countriesWithoutDisease), style={'textAlign':'center', 'paddingBottom':'3%'}),
+    html.Div([
+        "W dniu dzisiejszym odnotowano najwięcej przypadków zakażeń w kraju: " ,
+        html.B("{}".format(countedCasesAllCountries[0][0])), 
+        " z liczbą ",
+        html.B("{}".format(countedCasesAllCountries[0][1])), 
+        " przypdaków"
+        ], style={'textAlign':'center'}),
+    html.Div([
+        "W dniu dzisiejszym odnotowano najmniej przypadków zakażeń w kraju: " ,
+        html.B("{}".format(list(leastCasesPerDay.items())[0][0])),
+        " z liczbą ",
+        html.B("{}".format(list(leastCasesPerDay.items())[0][1])),
+        " przypdaków"
+        ], style={'textAlign':'center'}),
+    html.Div([
+        "W dniu dzisiejszym nie odnotowano nowych przypadków w ",
+        html.B("{}".format(countriesWithoutDisease)),
+        " krajach"
+        ], style={'textAlign':'center', 'paddingBottom':'3%'}),
     dcc.Graph(
         id='example-graphhe',
         figure={
@@ -152,7 +173,7 @@ app.layout = html.Div(children=[
                 {'x': total_rank[:5,0], 'y': total_rank[:5,1], 'type': 'bar', 'name': 'SF'},
             ],
             'layout': {
-                'title': 'Cases Rank by Countries',
+                'title': 'Kraje z największą ilością przypadków zakażeń',
                 'yaxis': {
                     'categoryorder': 'array',
                     'categoryarray': [x for _, x in sorted(zip(total_rank[:,0], total_rank[:,1]))]      
@@ -164,50 +185,51 @@ app.layout = html.Div(children=[
     dcc.Dropdown(
         id='dropp',
         options=setSelectorsToDropDown(data_csv),
-        value="Poland",
-        style={'width':'40%'}
+        value=['Poland'],
+        style={'width':'40%'},
+        multi=True
         
     ),
     dcc.Graph(
         id='example-graph',
-       
+    
     ),
     dcc.Graph(
         id='example-graphh',
      
     ),
-    
-    
-  
-    
 ])
     
 @app.callback(
     [dash.dependencies.Output('example-graph', 'figure'),
     dash.dependencies.Output('example-graphh', 'figure')],
     [dash.dependencies.Input('dropp', 'value')])
+
 def update_output(value):
-    country = str(value).strip("['']")
-    plot_x = selectDates(country)
-    plot_y = countAllCasesForOneCountry(country)
-    case_perDay = countAllCasesPerDayForOneCountry(country)
-    figure={
-            'data': [
-                {'x': plot_x, 'y': plot_y, 'type': 'line', 'name': 'SF'},
-            ],
-            'layout': {
-                'title': 'Total ' + country
-            }
-        }
-    figure1={
-            'data': [
-                {'x': plot_x, 'y': case_perDay, 'type': 'bar', 'name': 'SF'},
-            ],
-            'layout': {
-                'title': 'Increase per day for ' + country
-            }
-        }
+
+    plot_x = selectDates('Poland')
+
+    selectedCountries = ""
+    figure = go.Figure()
+    for country in value:
+        selectedCountries += ", " + str(country).strip("['']") 
+        plo =  countAllCasesForOneCountry(str(country).strip("['']"))
+        figure.add_trace(go.Scatter(x=plot_x,y= plo,name = str(country).strip("['']")))
+    
+
+    figure1 = go.Figure()
+    for country in value:
+        plo = countAllCasesPerDayForOneCountry(str(country).strip("['']"))
+        figure1.add_trace(go.Bar(x=plot_x,y= plo,name = str(country).strip("['']")))
+
+    figure.update_layout(title =  {'text':'Wszystkie przypadki dla' + selectedCountries.lstrip(','),'x':0.5})
+    figure1.update_layout(barmode='stack',title = {'text' : 'Dobowy przyrost dla' + selectedCountries.lstrip(','),'x':0.5})
+
+
     return figure,figure1
+
+end = time.time()
+print(end - start)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
