@@ -10,7 +10,8 @@ import time
 
 start = time.time()
 
-
+now = datetime.now()
+dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 data_csv = pd.read_csv('https://data.humdata.org/hxlproxy/api/data-preview.csv?url=https%3A%2F%2Fraw.githubusercontent.com%2FCSSEGISandData%2FCOVID-19%2Fmaster%2Fcsse_covid_19_data%2Fcsse_covid_19_time_series%2Ftime_series_covid19_confirmed_global.csv&filename=time_series_covid19_confirmed_global.csv')
     
 def setSelectorsToDropDown(data_csv):
@@ -146,7 +147,13 @@ for d in countedCasesAllCountriesPerDay:
 app = dash.Dash(__name__)
 server = app.server
 app.layout = html.Div(children=[
-    html.H1("COVID-19 DASHBOARD", style={'textAlign': 'center'}),
+    html.H1("COVID-19 DASHBOARD - Python version", style={'textAlign': 'center'}),
+    html.Div([
+        "Dane pobrano z dnia: ", 
+        html.B("ładowanie aktualnych danych...  ",id = 'liveUpdate'),
+        html.A(html.Button("Odśwież dane",n_clicks=0),id='button')],
+        id = 'testup',
+        style={'textAlign':'center'}),
     html.Div([
         "W dniu dzisiejszym odnotowano najwięcej przypadków zakażeń w kraju: " ,
         html.B("{}".format(countedCasesAllCountries[0][0])), 
@@ -199,7 +206,33 @@ app.layout = html.Div(children=[
      
     ),
 ])
-    
+
+@app.callback(
+    [dash.dependencies.Output('liveUpdate', 'children')],
+    [dash.dependencies.Input('button', 'n_clicks')])
+
+def update_outputt(n_clicks):
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    data_csv = pd.read_csv('https://data.humdata.org/hxlproxy/api/data-preview.csv?url=https%3A%2F%2Fraw.githubusercontent.com%2FCSSEGISandData%2FCOVID-19%2Fmaster%2Fcsse_covid_19_data%2Fcsse_covid_19_time_series%2Ftime_series_covid19_confirmed_global.csv&filename=time_series_covid19_confirmed_global.csv')
+
+    return [str(dt_string)+" "]
+@app.callback(
+    [dash.dependencies.Output('testup', 'children')],
+    [dash.dependencies.Input('button', 'n_clicks')])
+def update_outputt(n_clicks):
+    return [html.Div([
+    "Dane pobrano: ", 
+    html.B("ładowanie aktualnych danych...  ",id = "liveUpdate"),
+    html.A(html.Button("Odśwież dane",n_clicks=0,id="button"))],
+    style={'textAlign':'center'})]
+
+@app.callback(
+    [dash.dependencies.Output('dropp', 'value')],
+    [dash.dependencies.Input('liveUpdate', 'children')])
+def update_outputt(n_clicks):
+    return [['Poland']]
+ 
 @app.callback(
     [dash.dependencies.Output('example-graph', 'figure'),
     dash.dependencies.Output('example-graphh', 'figure')],
@@ -208,7 +241,6 @@ app.layout = html.Div(children=[
 def update_output(value):
 
     plot_x = selectDates('Poland')
-
     selectedCountries = ""
     figure = go.Figure()
     for country in value:
