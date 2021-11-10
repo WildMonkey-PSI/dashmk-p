@@ -12,6 +12,7 @@ start = time.time()
 
 now = datetime.now()
 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+
 data_csv = pd.read_csv('https://data.humdata.org/hxlproxy/api/data-preview.csv?url=https%3A%2F%2Fraw.githubusercontent.com%2FCSSEGISandData%2FCOVID-19%2Fmaster%2Fcsse_covid_19_data%2Fcsse_covid_19_time_series%2Ftime_series_covid19_confirmed_global.csv&filename=time_series_covid19_confirmed_global.csv')
     
 def setSelectorsToDropDown(data_csv):
@@ -129,18 +130,17 @@ total_rank = countAllCasesForCountries(countries)
 
 dic = {}
 for cc in countries:
-    ff = countLastCasesPerDayForOneCountry(cc)
-    dic[cc] = ff
-
+    dic[cc] = countLastCasesPerDayForOneCountry(cc)
+    
 countedCasesAllCountries = sorted(dic.items(), key=lambda x: x[1], reverse=True)
 countedCasesAllCountriesPerDay = sorted(dic.items(), key=lambda x: x[1])
 
 leastCasesPerDay = {}
 countriesWithoutDisease = 0
-for d in countedCasesAllCountriesPerDay:
+for x in countedCasesAllCountriesPerDay:
     
-    if(d[1] > 0):
-        leastCasesPerDay[d[0]] = d[1]
+    if(x[1] > 0):
+        leastCasesPerDay[x[0]] = x[1]
         break
     countriesWithoutDisease+=1
 
@@ -152,35 +152,34 @@ app.layout = html.Div(children=[
         "Dane pobrano z dnia: ", 
         html.B("ładowanie aktualnych danych...  ",id = 'liveUpdate'),
         html.A(html.Button("Odśwież dane",n_clicks=0),id='button')],
-        id = 'testup',
+        id = 'dataDiv',
         style={'textAlign':'center'}),
     html.Div([
-        "W dniu dzisiejszym odnotowano najwięcej przypadków zakażeń w kraju: " ,
+        "Odnotowano najwięcej przypadków zakażeń w kraju: " ,
         html.B("{}".format(countedCasesAllCountries[0][0])), 
         " z liczbą ",
         html.B("{}".format(countedCasesAllCountries[0][1])), 
         " przypdaków"
         ], style={'textAlign':'center'}),
     html.Div([
-        "W dniu dzisiejszym odnotowano najmniej przypadków zakażeń w kraju: " ,
+        "Odnotowano najmniej przypadków zakażeń w kraju: " ,
         html.B("{}".format(list(leastCasesPerDay.items())[0][0])),
         " z liczbą ",
         html.B("{}".format(list(leastCasesPerDay.items())[0][1])),
         " przypdaków"
         ], style={'textAlign':'center'}),
     html.Div([
-        "W dniu dzisiejszym nie odnotowano nowych przypadków w ",
+        "Nie odnotowano nowych przypadków w ",
         html.B("{}".format(countriesWithoutDisease)),
         " krajach"
         ], style={'textAlign':'center', 'paddingBottom':'3%'}),
     dcc.Graph(
-        id='example-graphhe',
         figure={
             'data': [
                 {'x': total_rank[:5,0], 'y': total_rank[:5,1], 'type': 'bar', 'name': 'SF'},
             ],
             'layout': {
-                'title': 'Kraje z największą ilością przypadków zakażeń',
+                'title': 'Kraje z największą liczbą przypadków zakażeń',
                 'yaxis': {
                     'categoryorder': 'array',
                     'categoryarray': [x for _, x in sorted(zip(total_rank[:,0], total_rank[:,1]))]      
@@ -190,20 +189,17 @@ app.layout = html.Div(children=[
     ),
     html.Div("Wybierz Kraj:", style={'paddingBottom':'1%','paddingLeft':'5%'}),
     dcc.Dropdown(
-        id='dropp',
+        id='dropDownList',
         options=setSelectorsToDropDown(data_csv),
         value=['Poland'],
         style={'width':'40%'},
-        multi=True
-        
+        multi=True 
     ),
     dcc.Graph(
-        id='example-graph',
-    
+        id='lineChart',
     ),
     dcc.Graph(
-        id='example-graphh',
-     
+        id='barPlot',
     ),
 ])
 
@@ -212,14 +208,15 @@ app.layout = html.Div(children=[
     [dash.dependencies.Input('button', 'n_clicks')])
 
 def update_outputt(n_clicks):
+    data_csv = pd.read_csv('https://data.humdata.org/hxlproxy/api/data-preview.csv?url=https%3A%2F%2Fraw.githubusercontent.com%2FCSSEGISandData%2FCOVID-19%2Fmaster%2Fcsse_covid_19_data%2Fcsse_covid_19_time_series%2Ftime_series_covid19_confirmed_global.csv&filename=time_series_covid19_confirmed_global.csv')
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    data_csv = pd.read_csv('https://data.humdata.org/hxlproxy/api/data-preview.csv?url=https%3A%2F%2Fraw.githubusercontent.com%2FCSSEGISandData%2FCOVID-19%2Fmaster%2Fcsse_covid_19_data%2Fcsse_covid_19_time_series%2Ftime_series_covid19_confirmed_global.csv&filename=time_series_covid19_confirmed_global.csv')
-
     return [str(dt_string)+" "]
+
 @app.callback(
-    [dash.dependencies.Output('testup', 'children')],
+    [dash.dependencies.Output('dataDiv', 'children')],
     [dash.dependencies.Input('button', 'n_clicks')])
+
 def update_outputt(n_clicks):
     return [html.Div([
     "Dane pobrano: ", 
@@ -228,15 +225,16 @@ def update_outputt(n_clicks):
     style={'textAlign':'center'})]
 
 @app.callback(
-    [dash.dependencies.Output('dropp', 'value')],
+    [dash.dependencies.Output('dropDownList', 'value')],
     [dash.dependencies.Input('liveUpdate', 'children')])
+    
 def update_outputt(n_clicks):
     return [['Poland']]
  
 @app.callback(
-    [dash.dependencies.Output('example-graph', 'figure'),
-    dash.dependencies.Output('example-graphh', 'figure')],
-    [dash.dependencies.Input('dropp', 'value')])
+    [dash.dependencies.Output('lineChart', 'figure'),
+    dash.dependencies.Output('barPlot', 'figure')],
+    [dash.dependencies.Input('dropDownList', 'value')])
 
 def update_output(value):
 
@@ -256,7 +254,6 @@ def update_output(value):
 
     figure.update_layout(title =  {'text':'Wszystkie przypadki dla' + selectedCountries.lstrip(','),'x':0.5})
     figure1.update_layout(barmode='stack',title = {'text' : 'Dobowy przyrost dla' + selectedCountries.lstrip(','),'x':0.5})
-
 
     return figure,figure1
 
